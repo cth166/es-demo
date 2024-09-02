@@ -1,4 +1,3 @@
-import type { Middleware } from 'koa'
 import Router from '@koa/router'
 import * as routes from './routes.ts'
 
@@ -10,7 +9,7 @@ api.get('/', (ctx) => {
 })
 
 for (const [url, route] of Object.entries(routes))
-  api.use(`/${url}`, ...[route].flat())
+  api.use(`/${url}`, route)
 
 
 
