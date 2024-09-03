@@ -8,5 +8,5 @@ export default defineConfig({
     format: 'es'
   },
   plugins: [typescript()],
-  external: ['koa', '@koa/router']
+  external: ['koa', '@koa/router', 'koa-static']
 })
