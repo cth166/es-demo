@@ -8,6 +8,22 @@
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='-5' y='20' font-size='80' dominant-baseline='hanging'>🧸</text></svg>"
     type="iamge/svg+xml" />
   <title>会赢的</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.0/styles/github.min.css" integrity="sha512-0aPQyyeZrWj9sCA46UlmWgKOP0mUipLQ6OZXu8l4IcAmD2u31EPEy9VcIMvl7SoAaKe8bLXZhYoMaE/in+gcgA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    .warning-tag {
+      background-color: rgb(253, 246, 236);
+      color: rgb(230, 162, 60);
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "markdown-it": "https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/+esm",
+        "highlight": "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.0/es/highlight.min.js",
+        "markdown-it-container": "./markdown-it-container.js"
+      }
+    }
+  </script>
 </head>
 
 <body>
@@ -16,20 +32,69 @@
     <p id="answer"></p>
   </div>
   <input id="input" value="" placeholder="输入问题" />
-  <button onclick="send()">send</button>
+  <button id="sendBtn">send</button>
 </body>
 <script type="module" src="./testapi.js"></script>
-<script>
+
+<script type="module">
+  import MarkdownIt from 'markdown-it';
+  import hljs from 'highlight';
+  import mdContainer from 'markdown-it-container';
+
+  const md = new MarkdownIt({
+    highlight: function (str, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          return '<pre class="hljs"><code>' +
+                hljs.highlight(lang, str, true).value +
+                '</code></pre>';
+        } catch (__) {}
+      }
+
+      return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+    }
+  });
+  md.use(mdContainer, 'warning', {
+
+    validate(params) {
+      return !!params.trim().match(/^warning\s*(.*)$/)
+    },
+
+    render: function (tokens, idx) {
+
+      if (tokens[idx].nesting === 1) {
+      // 1. 找到当前 token 的结束位置
+      const nextToken = tokens[idx + 1];
+      let content = '';
+
+      // 2. 如果是内联内容（如 *流式输出demo*，直接渲染
+      if (nextToken.type === 'inline') {
+        content = md.renderInline(nextToken.content);
+      }
+       
+      // opening tag
+      return '<div class="warning-tag">' + content + '\n';
+
+      } else {
+        // closing tag
+        return '</div>\n';
+      }
+    }
+  });
   const inputElem = document.getElementById('input')
   const answerElem = document.getElementById('answer')
+  const sendBtn = document.getElementById('sendBtn')
+  sendBtn.addEventListener('click', send)
 
   function exec(prompt) {
     const url = new URL('/api/chat', location.href)
     url.searchParams.set('prompt', prompt)
 
     const es = new EventSource(url) // 向服务端发起请求
+    let content = ''
     es.onmessage = (event) => {
-      const data = event.data || ''
+      const data = JSON.parse(event.data)
+
       if (data === '[DONE]') {
         // 结束
         console.log('done...')
@@ -37,18 +102,8 @@
         return
       }
 
-      const obj = JSON.parse(data)
-      console.log('obj... ', obj)
-
-      const content = obj.choices[0].delta.content
-      if (content == null) {
-        // 可能因为其他原因停止
-        console.log('stop...')
-        es.close()
-        return
-      }
-
-      answerElem.textContent += content
+      content += data
+      answerElem.innerHTML = md.render(content)
     }
   }
 
@@ -60,7 +115,7 @@
     answerElem.textContent = ''
     exec(prompt)
     inputElem.value = ''
-  }
+  }``
 
 </script>
 

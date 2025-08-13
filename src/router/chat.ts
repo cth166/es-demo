@@ -1,6 +1,9 @@
 import Router from '@koa/router';
+import * as readline from 'node:readline/promises';
+import { createReadStream } from 'node:fs';
+import { resolve } from 'node:path';
 
-
+const __dirname = import.meta.dirname;
 const router = new Router
 
 async function* gptStream() {
@@ -21,15 +24,27 @@ router.get('/', async (ctx) => {
   const res = ctx.res
   res.writeHead(200, { 'Content-Type': 'text/event-stream' })
 
+  const rl = readline.createInterface({
+    input: createReadStream(resolve(__dirname, './public/table.md'))
+  });
+
   try {
-    for await (const chunk of gptStream()) {
-      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    for await (const line of rl) {
+      if (/^\s*$/.test(line)) {
+        res.write(`data: ${JSON.stringify('\n\n')}\n\n`);
+        continue;
+      }
+
+      for (const char of line) {
+        res.write(`data: ${JSON.stringify(char)}\n\n`);
+        await new Promise(resolve => setTimeout(resolve, 50)); // 模拟延时
+      }
+      res.write(`data: ${JSON.stringify('\n')}\n\n`);
     }
+    res.write(`data: ${JSON.stringify('[DONE]')}\n\n`);
   } catch (err: any) {
     console.error('Error while streaming data: ', err);
     res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
-  } finally {
-    res.end();
   }
 
   // 当客户端断开连接时处理
@@ -37,8 +52,6 @@ router.get('/', async (ctx) => {
     console.log('Client disconnected');
     res.end();
   });
-
-  ctx.body = 'zhanjing chat with me'
 })
 
 export const chat = router.routes()
