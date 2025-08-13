@@ -7,7 +7,7 @@
   "scripts": {
     "build": "rollup -c",
     "start": "node ./dist",
-    "restart": "npm run build && npm start" 
+    "restart": "npm run build && npm start"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +17,7 @@
     "@types/koa-static": "^4.0.4",
     "@types/koa__router": "^12.0.4",
     "rollup": "^4.21.2",
+    "rollup-plugin-copy": "^3.5.0",
     "tslib": "^2.7.0",
     "typescript": "^5.5.4"
   },
